@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+
+import re
+from sys import argv, exit
+import math
+import time
+
+def help():
+    print("USAGE")
+    print("    ./iq_finder u s [IQ1] [IQ2]\n")
+    print("DESCRIPTION")
+    print("    u       mean")
+    print("    s       standard deviation")
+    print("    IQ1     minimum IQ")
+    print("    IQ2     maximum IQ")
+
+def check_error(size, argv):
+    if (size <= 2):
+        print("not enough arguments")
+        return 84
+    elif (size > 5):
+        print("too many arguments")
+        return 84
+
+    for i in range(1, size):
+        if not argv[i].isdigit():
+            print("parameters need to be numeric")
+            return 84
+
+    if size >= 4:
+        if int(argv[2]) < 0 or int(argv[2]) > 200:
+            print("parameter [s] needs to be between 0 and 200")
+            return 84
+        if int(argv[3]) < 0 or int(argv[3]) > 200:
+            print("parameter [IQ1] needs to be between 0 and 200")
+            return 84
+
+    if size == 5:
+        if int(argv[4]) < 0 or int(argv[4]) > 200:
+            print("parameter [IQ2] needs to be between 0 and 200")
+            return 84
+        if int(argv[3]) > int(argv[4]):
+            print("parameter [IQ1] needs to be smaller than [IQ2]")
+            return 84
+
+    return 0
+
+def gaussian(u, s, x):
+    return (1/(s*math.sqrt(2*math.pi)))*math.exp(-((x-u)**2)/(2*(s**2)))
+
+def gaussian_tab(u, s, IQ1 = 0, IQ2 = 200):
+    iq_array = []
+    for x in range (IQ1, IQ2 + 1):
+        result = gaussian(u, s, x)
+        iq_array.append(result)
+    return iq_array
+
+def display_density(u, s, IQ1 = 0, IQ2 = 200):
+    iq_array = gaussian_tab(u, s, IQ1, IQ2)
+
+    for x in range (IQ1, len(iq_array)):
+        print(x, '%.5f' % iq_array[x]);
+
+def integrate(a, b, N = 1000, u = 0, s = 1):
+    res = 0.0
+    h:float = (b - a) / N
+    for n in range(N):
+        res += (h/2) * (gaussian(u, s, (a + (n * h))) + gaussian(u, s, (a + (n * h) + h)))
+    return res
+
+def calculate_percentage(u, s, IQ1, IQ2):
+    percentage = integrate(IQ1, IQ2, 1000, u, s)
+    return percentage * 100
+
+def display_between(mode, u, s, IQ2, IQ1 = 0):
+    iq_array = gaussian_tab(u, s, IQ1, IQ2)
+    percentage = calculate_percentage(u, s, IQ1, IQ2)
+    if mode == 0:
+        print('%.1f' % percentage, "% of people have an IQ inferior to ", IQ2, sep='')
+    if mode == 1:
+        print('%.1f' % percentage, "% of people have an IQ between ", IQ1, " and ", IQ2, sep='')
+
+def main():
+    size = len(argv)
+
+    if size == 1:
+        exit(84)
+    elif size == 2 and (argv[1] == "-help" or argv[1] == "-h"):
+        help()
+        return (0)
+    if check_error(size, argv) == 84:
+        exit(84)
+
+    if size == 3:
+        display_density(int(argv[1]), int(argv[2]))
+    if size == 4:
+        display_between(0, int(argv[1]), int(argv[2]), int(argv[3]))
+    if size == 5:
+        display_between(1, int(argv[1]), int(argv[2]), int(argv[4]), int(argv[3]))
+
+    return (0)
+
+if __name__ == "__main__":
+    exit(main())

@@ -1,0 +1,269 @@
+#!/usr/bin/env python3
+
+from sys import argv, exit
+import math
+
+def help():
+    print("USAGE")
+    print("    ./yams_probability d1 d2 d3 d4 d5 c\n")
+    print("DESCRIPTION")
+    print("    d1      value of the first die (0 if not thrown)")
+    print("    d2      value of the second die (0 if not thrown)")
+    print("    d3      value of the third die (0 if not thrown)")
+    print("    d4      value of the fourth die (0 if not thrown)")
+    print("    d5      value of the fifth die (0 if not thrown)");
+    print("    c       expected combination");
+
+def check_error(args, size, argv):
+    if (size != 7):
+        return 84
+    param = argv[6].split("_")
+
+    if argv[1] < '0' or argv[1] > '6':
+        return 84
+    if argv[2] < '0' or argv[2] > '6':
+        return 84
+    if argv[3] < '0' or argv[3] > '6':
+        return 84
+    if argv[4] < '0' or argv[4] >'6':
+        return 84
+    if argv[5] < '0' or argv[5] > '6':
+        return 84
+
+    if param[0] != "pair" and param[0] != "three" and param[0] != "four" and param[0] != "straight" and param[0] != "full" and param[0] != "yams":
+        return 84
+
+    if param[0] == "full":
+        if len(param) != 3:
+            return 84
+        if param[1] == param[2]:
+            return 84
+        if param[2] < '0' or param[2] > '6':
+            return 84
+    else:
+        if param[0] == "straight":
+            if param[1] != '5' and param[1] != '6':
+                return 84
+        if len(param) != 2:
+            return 84
+        if param[1] < '0' or param[1] > '6':
+            return 84
+        return 0
+
+def check_full(dies, A, B):
+    dice_A = get_OK_dice(dies, A)
+    dice_B = get_OK_dice(dies, B)
+    if (dice_A == 3 and dice_B == 2):
+        return 1
+    return 0
+
+def check_straight(dies, A):
+    dice_value = 1 if A == 5 else 2
+    laps = 0
+
+    while (laps <= 4):
+        if get_OK_dice(dies, dice_value) == 0:
+            return 0
+        laps += 1
+        dice_value += 1
+    return 1
+
+def get_OK_dice(dies, A):
+    count = 0
+    count = count + 1 if dies[0] == A else count
+    count = count + 1 if dies[1] == A else count
+    count = count + 1 if dies[2] == A else count
+    count = count + 1 if dies[3] == A else count
+    count = count + 1 if dies[4] == A else count
+    return count
+
+def get_dice_to_roll(dies, need_dice, mode, A, B):
+    if mode == 1:
+        return (5 - get_OK_dice(dies, A))
+    if mode == 2:
+        count = 5
+        three = get_OK_dice(dies, A)
+        count = count - three if three <= 3 else count - 3
+        pair = get_OK_dice(dies, B)
+        count = count - pair if pair <= 2 else count - 2
+        return count
+    if mode == 3:
+        count = 5
+        for idx in range (A, A - 5, -1):
+            if get_OK_dice(dies, idx) >= 1:
+                count -= 1
+        return count
+    return 0
+
+def get_index(dies, number, index):
+    if dies[0] == number:
+        index -= 1
+        if index == 0:
+            return 0
+    if dies[1] == number:
+        index -= 1
+        if index == 0:
+            return 1
+    if dies[2] == number:
+        index -= 1
+        if index == 0:
+            return 2
+    if dies[3] == number:
+        index -= 1
+        if index == 0:
+            return 3
+    if dies[4] == number:
+        index -= 1
+        if index == 0:
+            return 4
+    return -1
+
+def get_dice_array(dies, mode, A, B):
+    array = [0, 0, 0, 0, 0]
+    if mode == 1:
+        array[0] = dies[0] if dies[0] == A else 0
+        array[1] = dies[1] if dies[1] == A else 0
+        array[2] = dies[2] if dies[2] == A else 0
+        array[3] = dies[3] if dies[3] == A else 0
+        array[4] = dies[4] if dies[4] == A else 0
+    if mode == 2:
+        three = get_OK_dice(dies, A)
+        three = 3 if three > 3 else three
+        for laps in range (0, three):
+            idx = get_index(dies, A, laps + 1)
+            array[idx] = A if idx != -1 else array[idx]
+        pair = get_OK_dice(dies, B)
+        pair = 2 if pair > 2 else pair
+        for laps in range (0, pair):
+            idx = get_index(dies, B, laps + 1)
+            array[idx] = B if idx != -1 else array[idx]
+    if mode == 3:
+        for number in range (A - 4, A + 1):
+            idx = get_index(dies, number, 1)
+            array[idx] = number if idx != -1 else array[idx]
+    return array
+
+def get_check_array(dies, dice_array):
+    idx_count = 0;
+    new_array = [dice_array[0], dice_array[1], dice_array[2], dice_array[3], dice_array[4]]
+    for laps in range (0, get_OK_dice(dice_array, 0)):
+        idx = get_index(dice_array, 0, laps + 1)
+        new_array[idx] = dies[idx_count]
+        idx_count += 1
+    return new_array
+
+def check_throw(dies, need_dice, mode, A, B, dice_array):
+    check_array = get_check_array(dies, dice_array)
+    if mode == 1 and get_OK_dice(check_array, A) >= need_dice:
+        return 1
+    elif mode == 2 and check_full(check_array, A, B) == 1:
+        return 1
+    elif mode == 3 and check_straight(check_array, A) == 1:
+        return 1
+    return 0
+
+def check_combinaison(dies, need_dice, mode, A, B = 0):
+    count = 0
+    dice_to_roll = get_dice_to_roll(dies, need_dice, mode, A, B)
+    if dice_to_roll == 0:
+        return (100.00)
+    dice_array = get_dice_array(dies, mode, A, B)
+
+    if (dice_to_roll == 5):
+        laps = 7776
+        for idx_die_1 in range (1, 7):
+            for idx_die_2 in range (1, 7):
+                for idx_die_3 in range (1, 7):
+                    for idx_die_4 in range (1, 7):
+                        for idx_die_5 in range (1, 7):
+                            count += check_throw([idx_die_1, idx_die_2, idx_die_3, idx_die_4, idx_die_5], need_dice, mode, A, B, dice_array)
+
+    if (dice_to_roll == 4):
+        laps = 1296
+        for idx_die_1 in range (1, 7):
+            for idx_die_2 in range (1, 7):
+                for idx_die_3 in range (1, 7):
+                    for idx_die_4 in range (1, 7):
+                        count += check_throw([idx_die_1, idx_die_2, idx_die_3, idx_die_4, 0], need_dice, mode, A, B, dice_array)
+
+    if (dice_to_roll == 3):
+        laps = 216
+        for idx_die_1 in range (1, 7):
+            for idx_die_2 in range (1, 7):
+                for idx_die_3 in range (1, 7):
+                    count += check_throw([idx_die_1, idx_die_2, idx_die_3, 0, 0], need_dice, mode, A, B, dice_array)
+
+    if (dice_to_roll == 2):
+        laps = 36
+        for idx_die_1 in range (1, 7):
+            for idx_die_2 in range (1, 7):
+                count += check_throw([idx_die_1, idx_die_2, 0, 0, 0], need_dice, mode, A, B, dice_array)
+
+    if (dice_to_roll == 1):
+        laps = 6
+        for idx_die_1 in range (1, 7):
+            count += check_throw([idx_die_1, 0, 0, 0, 0], need_dice, mode, A, B, dice_array)
+
+    return (count * 100 / laps)
+
+
+
+def pair(dies, A):
+    percentage = check_combinaison(dies, 2, 1, A)
+    print("Chances to get a ", A, " pair: ", '%.2f' % percentage, "%", sep='')
+
+def three(dies, A):
+    percentage = check_combinaison(dies, 3, 1, A)
+    print("Chances to get a ", A, " three-of-a-kind: ", '%.2f' % percentage, "%", sep='')
+
+def four(dies, A):
+    percentage = check_combinaison(dies, 4, 1, A)
+    print("Chances to get a ", A, " four-of-a-kind: ", '%.2f' % percentage, "%", sep='')
+
+def full(dies, A, B):
+    percentage = check_combinaison(dies, 5, 2, A, B)
+    print("Chances to get a ", A, " full of ", B, ": ", '%.2f' % percentage, "%", sep='')
+
+def straight(dies, A):
+    percentage = check_combinaison(dies, 5, 3, A)
+    print("Chances to get a ", A, " straight: ", '%.2f' % percentage, "%", sep='')
+
+def yams(dies, A):
+    percentage = check_combinaison(dies, 5, 1, A)
+    print("Chances to get a ", A, " yams: ", '%.2f' % percentage, "%", sep='')
+
+def simulate(argv):
+    dies = [int(argv[1]), int(argv[2]), int(argv[3]), int(argv[4]), int(argv[5])]
+    param = argv[6].split("_")
+
+    if (param[0] == "pair"):
+        pair(dies, int(param[1]))
+    elif (param[0] == "three"):
+        three(dies, int(param[1]))
+    elif (param[0] == "four"):
+        four(dies, int(param[1]))
+    elif (param[0] == "full"):
+        full(dies, int(param[1]), int(param[2]))
+    elif (param[0] == "straight"):
+        straight(dies, int(param[1]))
+    else:
+        yams(dies, int(param[1]))
+
+def main():
+    args = []
+    size = len(argv)
+
+    if size == 1:
+        help()
+        exit(84)
+    elif size == 2 and (argv[1] == "-help" or argv[1] == "-h"):
+        help()
+        return (0)
+    if check_error(args, size, argv) == 84:
+        exit(84)
+
+    simulate(argv)
+    return (0)
+
+if __name__ == "__main__":
+    exit(main())

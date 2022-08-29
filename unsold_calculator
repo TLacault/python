@@ -1,0 +1,157 @@
+#!/usr/bin/env python3
+
+import re
+from sys import argv, exit
+import math
+
+def help():
+    print("USAGE")
+    print("    ./unsold_calculator a b\n")
+    print("DESCRIPTION")
+    print("    a       constant computed from the past results")
+    print("    b       constant computed from the past results")
+
+def check_error(size, argv):
+    if (size != 3):
+        print("2 arguments needed")
+        return 84
+
+    try:
+        tmp_1 = int(argv[1])
+        tmp_2 = int(argv[2])
+    except:
+        print("a and b needs to be numeric")
+        return 84
+
+    if tmp_1 < 50 or tmp_2 < 50:
+        print("no values below 50 allowed")
+        return 84
+
+    return 0
+
+def calc_probability(a, b, x, y):
+    return ((a - x) * (b - y)) / ((5 * a - 150) * (5 * b  -150))
+
+def get_probability_tab(a, b):
+    probability_tab = []
+    for y in range(10, 60, 10):
+        list_temp = []
+        for x in range(10, 60, 10):
+            list_temp.append(calc_probability(a, b, x, y))
+        probability_tab.append(list_temp)
+    return probability_tab
+
+def get_Y_law(probability_tab):
+    Y_law = [0.00, 0.00, 0.00, 0.00, 0.00]
+    for y in range (0, 5):
+        for x in range (0, 5):
+            Y_law[y] += probability_tab[y][x]
+    return Y_law
+
+def get_X_law(probability_tab):
+    X_law = [0.00, 0.00, 0.00, 0.00, 0.00]
+    for x in range (0, 5):
+        for y in range (0, 5):
+            X_law[x] += probability_tab[y][x]
+    return X_law
+
+def calc_esperance(law_tab):
+    esperance = 0.00
+    for x in range (0, len(law_tab)):
+        if (len(law_tab) > 5):
+            esperance += ((x + 2) * 10) * law_tab[x]
+        else:
+            esperance += ((x + 1) * 10) * law_tab[x]
+    return esperance
+
+def calc_variance(law_tab):
+    variance = 0.00
+    for x in range (0, len(law_tab)):
+        if (len(law_tab) > 5):
+            variance += ((((x + 2) * 10) - calc_esperance(law_tab))**2) * law_tab[x]
+        else:
+            variance += ((((x + 1) * 10) - calc_esperance(law_tab))**2) * law_tab[x]
+    return variance
+
+def display_probability(probability_tab):
+    print("        X=10   X=20   X=30   X=40   X=50   Y law")
+    for y in range (0, 5):
+        print("Y=", (y + 1) * 10, " ", sep='', end='')
+        for x in range (0, 5):
+            if x == 0:
+                print("  ", '%.3f' % probability_tab[y][x], end='')
+            else:
+                print(" ", '%.3f' % probability_tab[y][x], end='')
+        print(" ", '%.3f' % get_Y_law(probability_tab)[y])
+    print("X law ", end= '')
+    for x in range (0, 5):
+        print(" ", '%.3f' % get_X_law(probability_tab)[x], end='')
+    print("  1.000")
+
+def get_Z_law(probability_tab):
+    Z_law = [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]
+    lim = len(probability_tab[0]) - 1
+    x_max = y_max = 0
+    lim_state = 0
+
+    for z in range (0, lim * 2 + 1):
+        value = 0.00
+        x = lim_state if lim_state <= x_max else x_max
+        y = y_max
+        while (1):
+            value += probability_tab[y][x]
+            x = x + 1 if x <= x_max else x
+            y = y - 1 if y >= 0 else 0
+            if x > x_max or y < 0:
+                break
+        if x_max == lim or lim_state > 0:
+            lim_state += 1
+        y_max = y_max + 1 if lim_state == 0 else y_max
+        x_max = x_max + 1 if lim_state == 0 else x_max
+        Z_law[z] = value
+    return Z_law
+
+def display_Z_law(probability_tab):
+    print("z       20     30     40     50     60     70     80     90     100")
+    print("p(Z=z)", end='')
+    for i in range(0, 9):
+        if i == 0:
+            print(" ", '%.3f' % get_Z_law(probability_tab)[i], end='')
+        else:
+            print(" ", '%.3f' % get_Z_law(probability_tab)[i], end='')
+    print("\n", end='')
+
+def display_variance(probability_tab):
+    print("expected value of X: ", '%.1f' % calc_esperance(get_X_law(probability_tab)))
+    print("variance of X:       ", '%.1f' % calc_variance(get_X_law(probability_tab)))
+    print("expected value of Y: ", '%.1f' % calc_esperance(get_Y_law(probability_tab)))
+    print("variance of Y:       ", '%.1f' % calc_variance(get_Y_law(probability_tab)))
+    print("expected value of Z: ", '%.1f' % calc_esperance(get_Z_law(probability_tab)))
+    print("variance of Z:       ", '%.1f' % calc_variance(get_Z_law(probability_tab)))
+
+def display_tab(a, b):
+    print("-" * 80)
+    display_probability(get_probability_tab(a, b))
+    print("-" * 80)
+    display_Z_law(get_probability_tab(a, b))
+    print("-" * 80)
+    display_variance(get_probability_tab(a, b))
+    print("-" * 80)
+
+def main():
+    size = len(argv)
+
+    if size == 1:
+        help()
+        exit(84)
+    elif size == 2 and (argv[1] == "-help" or argv[1] == "-h"):
+        help()
+        return (0)
+    if check_error(size, argv) == 84:
+        exit(84)
+
+    display_tab(int(argv[1]), int(argv[2]))
+    return (0)
+
+if __name__ == "__main__":
+    exit(main())

@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+
+import re
+from sys import argv, exit
+import math
+from math import factorial
+import time
+
+def help():
+    print("USAGE")
+    print("    ./203hotline [n k | d]\n")
+    print("DESCRIPTION")
+    print("    n       value for the computation of C(n, k)")
+    print("    k       value for the computation of C(n, k)")
+    print("    d       average duration of calls (in seconds)")
+
+def check_error(size, argv):
+    if (size <= 1):
+        print("not enough arguments\ntry with -h")
+        return 84
+    elif (size > 3):
+        print("too many arguments\ntry with -h")
+        return 84
+
+    if (size == 2):
+        try:
+            tmp_1 = int(argv[1])
+        except:
+            print("a need to be numeric")
+            return 84
+    elif (size == 3):
+        try:
+            tmp_1 = int(argv[1])
+            tmp_2 = int(argv[2])
+        except:
+            print("a and b need to be numeric")
+            return 84
+
+    return 0
+
+def get_coefficient(n, k):
+    return math.factorial(n) // (math.factorial(k) * math.factorial(n - k))
+
+def display_coefficient(n, k):
+    result = get_coefficient(n, k)
+    print(k, "-combinations of a set of size ", n, ":\n", result, sep='')
+
+def get_poisson(d):
+    l = 3500 * d / (8 * 60 * 60)
+    probability_tab = [];
+    for k in range (0, 51):
+        probability = ((l ** k) / math.factorial(k)) * math.exp(-l)
+        probability_tab.append(probability)
+    return probability_tab
+
+def binomial_law(n, k, p):
+    coefficient = get_coefficient(n, k)
+    return coefficient * (p ** k) * ((1 - p) ** (n - k))
+
+def get_binomial(d):
+    p = d / (8 * 60 * 60)
+    probability_tab = [];
+    for k in range (0, 51):
+        probability = binomial_law(3500, k, p)
+        probability_tab.append(probability)
+    return probability_tab
+
+def get_overload(probability_tab):
+    overload = 0.00
+    for i in range (26, 51):
+        overload += probability_tab[i]
+    return overload * 100
+
+def display_tab(probability_tab):
+    for i in range (0, 51):
+        print(i, " -> ", '%.3f' % probability_tab[i], sep='', end = '')
+        if i <= 9 and (i + 1) % 5 != 0:
+            print("      ", end='')
+        elif (i + 1) % 5 != 0 and i != 50:
+            print("     ", end='')
+        if (i + 1) % 5 == 0:
+            print("\n", end='')
+    print("\n", end='')
+
+def display_poisson(d):
+    time_start = time.time()
+    probability_tab = get_poisson(d)
+    total_time = (time.time() - time_start) * 1000
+    display_tab(probability_tab)
+    overload = get_overload(probability_tab)
+    print("Overload: ", '%.1f' % overload, "%", sep='')
+    print("Computation time:", '%.2f' % total_time, "ms")
+
+def display_binomial(d):
+    time_start = time.time()
+    probability_tab = get_binomial(d)
+    total_time = (time.time() - time_start) * 1000
+    display_tab(probability_tab)
+    overload = get_overload(probability_tab)
+    print("Overload: ", '%.1f' % overload, "%", sep='')
+    print("Computation time:", '%.2f' % total_time, "ms")
+
+def main():
+    size = len(argv)
+
+    if size == 1:
+        exit(84)
+    elif size == 2 and (argv[1] == "-help" or argv[1] == "-h"):
+        help()
+        return (0)
+    if check_error(size, argv) == 84:
+        exit(84)
+
+    if (size == 3):
+        display_coefficient(int(argv[1]), int(argv[2]))
+    else:
+        print("Binomial distribution:")
+        display_binomial(int(argv[1]))
+        print("\nPoisson distribution:")
+        display_poisson(int(argv[1]))
+    return (0)
+
+if __name__ == "__main__":
+    exit(main())
